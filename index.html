@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>OpenLayers example</title>
+    <link rel="stylesheet" href="main.css">
+</head>
+
+<body>
+    <div id="map"></div>
+    <div class="dropdown">
+        <form class="form-inline">
+            <label>Geometry type &nbsp;</label>
+            <select id="type">
+        <option value="LineString">LineString</option>
+        <option value="Polygon">Polygon</option>
+        <option value="Circle">Circle</option>
+        <option value="None">None</option>
+      </select>
+        </form>
+    </div>
+    <input class="btn btn-default" type="file" id="file-input">
+    <a id="changeColor" class="btn btn-warning"><i class="fa fa-download"></i> Change</a>
+    <a id="exportPr" class="btn btn-success"><i class="fa fa-download"></i> Export</a>
+    <a id="importPr" class="btn btn-info"><i class="fa fa-download"></i> Import</a>
+
+    <!-- BEGIN Propertie Div:  -->
+
+    <div class="container">
+        <div class="Propertie">
+            <h3 class="text-center">Draw Properties</h3><br><br>
+
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <span class="input-group-text" id="inputGroup-sizing-default">Name</span>
+                </div>
+                <input id="name" type="text"  class="form-control" aria-label="Default" aria-describedby="inputGroup-sizing-default" placeholder="Algeria">
+            </div>
+
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <span class="input-group-text" id="inputGroup-sizing-default">Style </span>
+                </div>
+                <input id="fill" type="color" class="form-control" aria-label="Default" aria-describedby="inputGroup-sizing-default">
+                <input id="stroke" type="color" class="form-control" aria-label="Default" aria-describedby="inputGroup-sizing-default">
+            </div>
+            <div id="addedProp">
+                <div class="">
+                </div>
+            </div>
+            <button id="addProp" type="button" class="btn btn-outline-secondary">Add</button>
+            <br><br>
+
+            <div class="row">
+                <div class="col md-2">
+                    <button id="cancelDraw" type="button" class="btn btn-outline-dark">Cancel</button>
+                </div>
+                <div class="col md-2"></div>
+                <div class="col md-2">
+                    <button id="saveDraw" type="button" class="btn btn-outline-success">Save Draw</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- END Propertie Div:  -->
+
+
+</body>
+<script src="./index.js"></script>
+
+
+</html>
