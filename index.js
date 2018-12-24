@@ -31,7 +31,6 @@ import {
 import WKT from 'ol/format/WKT.js';
 import Feature from 'ol/Feature.js';
 
-
 require('bootstrap/dist/css/bootstrap.css');
 require('font-awesome/css/font-awesome.css');
 
@@ -60,13 +59,21 @@ var jsonObjects = Array();
 var _wkt;
 var _feature;
 var _pid = 0;
+var typeSelect='LineString';
 
-var typeSelect = document.getElementById('type');
+
 //      Event Listeners
 document.getElementById('file-input').addEventListener('change', readSingleFile, false);
-document.getElementById('changeColor').addEventListener('click', changeColor, false);
 document.getElementById('exportPr').addEventListener('click', exportPr, false);
 document.getElementById('importPr').addEventListener('click', importPr, false);
+document.getElementById('openMap').addEventListener('click', openMap, false);
+document.getElementById('line').addEventListener('click', drawLine, false);
+document.getElementById('poly').addEventListener('click', drawPoly, false);
+document.getElementById('circle').addEventListener('click', drawCircle, false);
+
+function openMap() {
+    document.getElementById('file-input').click();
+}
 
 function exportPr() {
     var NameFile = prompt("Save as :");
@@ -100,9 +107,9 @@ function openFile(event) {
     var reader = new FileReader();
     reader.onload = function() {
         var json = JSON.parse(reader.result);
-        if (json!=0) {
-        jsonObjects=json;
-        _pid=json.length;
+        if (json != 0) {
+            jsonObjects = json;
+            _pid = json.length;
             //localStorage.setItem("stringObjects", reader.result);
             json.forEach(function(elem) {
                 var wktObject = new WKT();
@@ -177,21 +184,32 @@ function loadMap() {
             maxZoom: 4
         })
     });
-    typeSelect.onchange = function() {
-        map.removeInteraction(draw);
-        addInteraction();
-    };
+    addInteraction();
+}
 
+function drawLine() {
+    typeSelect='LineString';
+    map.removeInteraction(draw);
+    addInteraction();
+}
+function drawPoly() {
+    typeSelect='Polygon';
+    map.removeInteraction(draw);
+    addInteraction();
+}
+function drawCircle() {
+    typeSelect='Circle';
+    map.removeInteraction(draw);
     addInteraction();
 }
 
 function addInteraction() {
     var save = false;
-    var value = typeSelect.value;
+    var value = typeSelect;
     if (value !== 'None') {
         draw = new Draw({
             source: source,
-            type: typeSelect.value,
+            type: value,
             freehand: false
         });
         draw.on('drawend', function(e) {
@@ -258,7 +276,7 @@ document.getElementById('saveDraw').addEventListener('click', function() {
         'stroke': stroke
     }
     var jsonObject = {
-        'name' : name,
+        'name': name,
         'style': styleJson,
         'wkt': _wkt,
         'Pnames': Pnames,
