@@ -34,8 +34,6 @@ import Feature from 'ol/Feature.js';
 require('bootstrap/dist/css/bootstrap.css');
 require('font-awesome/css/font-awesome.css');
 
-
-
 window.onload = firstLoad;
 var _fileName;
 var draw;
@@ -59,8 +57,16 @@ var jsonObjects = Array();
 var _wkt;
 var _feature;
 var _pid = 0;
-var typeSelect='LineString';
+var _perfc = false;
+var _nbElem=0;
+var typeSelect = 'LineString';
 
+
+//Hex To Rgb transformation
+const hexToRgb = hex =>
+    hex.replace(/^#?([a-f\d])([a-f\d])([a-f\d])$/i, (m, r, g, b) => '#' + r + r + g + g + b + b)
+    .substring(1).match(/.{2}/g)
+    .map(x => parseInt(x, 16));
 
 //      Event Listeners
 document.getElementById('file-input').addEventListener('change', readSingleFile, false);
@@ -108,10 +114,9 @@ function openFile(event) {
     reader.onload = function() {
         var json = JSON.parse(reader.result);
         if (json != 0) {
-            jsonObjects = json;
-            _pid = json.length;
             //localStorage.setItem("stringObjects", reader.result);
             json.forEach(function(elem) {
+                jsonObjects.push(elem);
                 var wktObject = new WKT();
                 var feature = wktObject.readFeature(elem.wkt);
                 var style = new Style({
@@ -125,31 +130,15 @@ function openFile(event) {
                 });
                 feature.setStyle(style);
                 source.addFeature(feature);
+                document.getElementById('lay').insertAdjacentHTML(
+                    'beforeend',
+                    '<span class="input-group-text" id="draw'+_nbElem+'">'+elem.name+'</span>');
+                    _nbElem++;
             });
         }
     }
     reader.readAsText(input.files[0]);
 };
-
-function changeColor() {
-    var style = new Style({
-        fill: new Fill({
-            color: 'rgba(255, 255, 255, 0.5)'
-        }),
-        stroke: new Stroke({
-            color: '#ffcc33',
-            width: 2
-        }),
-        image: new CircleStyle({
-            radius: 7,
-            fill: new Fill({
-                color: '#ffcc33'
-            })
-        })
-    });
-    map.getLayers().array_[1].setStyle(style)
-    console.log(map.getLayers().array_[1].getStyle());
-}
 
 function firstLoad() {
     _fileName = "germany-map.jpg";
@@ -179,26 +168,29 @@ function loadMap() {
         target: 'map',
         view: new View({
             projection: projection,
-            zoom: 3,
+            zoom: 1.5,
             center: getCenter(extent),
-            maxZoom: 4
+            maxZoom: 6,
+            minZoom: 1
         })
     });
     addInteraction();
 }
 
 function drawLine() {
-    typeSelect='LineString';
+    typeSelect = 'LineString';
     map.removeInteraction(draw);
     addInteraction();
 }
+
 function drawPoly() {
-    typeSelect='Polygon';
+    typeSelect = 'Polygon';
     map.removeInteraction(draw);
     addInteraction();
 }
+
 function drawCircle() {
-    typeSelect='Circle';
+    typeSelect = 'Circle';
     map.removeInteraction(draw);
     addInteraction();
 }
@@ -244,22 +236,22 @@ document.getElementById('cancelDraw').addEventListener('click', function() {
 document.getElementById('saveDraw').addEventListener('click', function() {
     var element = document.getElementsByClassName('Propertie')[0];
     element.style.display = "none";
-
     //Get Properties
     var name = document.getElementById('name').value;
     var fill = document.getElementById('fill').value;
     var stroke = document.getElementById('stroke').value;
+    var tmp = hexToRgb(fill);
 
+    fill = 'rgba(' + tmp[0] + ',' + tmp[1] + ',' + tmp[2] + ',0.5)';
     var style = new Style({
         fill: new Fill({
             color: fill
         }),
         stroke: new Stroke({
             color: stroke,
-            width: 2
+            width: 1
         })
     });
-
     _feature.setStyle(style);
 
     var Pnames = Array();
@@ -284,6 +276,12 @@ document.getElementById('saveDraw').addEventListener('click', function() {
     };
     jsonObjects.push(jsonObject);
     console.log(jsonObjects);
+
+    document.getElementById('lay').insertAdjacentHTML(
+        'beforeend',
+        '<span class="input-group-text" id="draw'+_nbElem+'">'+name+'</span>');
+
+    _nbElem++;//Increment nb of elements
     map.removeInteraction(draw);
     addInteraction();
 }, false);
@@ -299,3 +297,48 @@ document.getElementById('addProp').addEventListener('click', function() {
 </div>');
     _pid++;
 }, false);
+
+document.addEventListener('mouseover', function(e) {
+    if (e.target.id.indexOf('draw') != -1) {
+        resetStyle();
+        _perfc = true;
+        var id = parseInt(e.target.id.replace(/^\D+/g, ''));
+        var feature = source.getFeatures()[id];
+        var style = new Style({
+            fill: new Fill({
+                color: 'rgba(0,253,255,0.5'
+            }),
+            stroke: new Stroke({
+                color: 'black',
+                width: 2
+            })
+        });
+        feature.setStyle(style);
+    } else {
+        resetStyle();
+    }
+});
+
+function resetStyle() {
+    if (_perfc && jsonObjects.length>=1 ) {
+        var styleAr = Array();
+        jsonObjects.forEach(function(elem) {
+            var style = new Style({
+                fill: new Fill({
+                    color: elem.style.fill
+                }),
+                stroke: new Stroke({
+                    color: elem.style.stroke,
+                    width: 1
+                })
+            });
+            styleAr.push(style);
+        });
+        var features = source.getFeatures();
+        var length = features.length;
+        for (var i = 0; i < length; i++) {
+            features[i].setStyle(styleAr[i]);
+        }
+        _perfc=false;
+    }
+}

@@ -11,7 +11,7 @@
     <div class="header">
         <nav class="navbar navbar-expand-md navbar-light bg-light ">
             <a class="navbar-brand" href="#"><i class="fa fa-compass fa-lg"></i> iGis</a>
-            <button  class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse justify-content-md-center" id="navbarNav">
@@ -34,9 +34,13 @@
             <a class="list-group-item" href="#"><i class="fa fa-pencil fa-fw" ></i></a>
             <div class="sep"></div>
             <a id="line" class="list-group-item" href="#"><i class="fa fa-arrows-h fa-fw" ></i></a>
-            <a id="poly"class="list-group-item" href="#"><i class="fa fa-square-o fa-fw "></i></a>
-            <a id="circle"class="list-group-item" href="#"><i class="fa fa-circle-thin fa-fw"></i></a>
+            <a id="poly" class="list-group-item" href="#"><i class="fa fa-square-o fa-fw "></i></a>
+            <a id="circle" class="list-group-item" href="#"><i class="fa fa-circle-thin fa-fw"></i></a>
             <a class="list-group-item" href="#"><i class="fa fa-cog fa-fw"></i></a>
+        </div>
+    </div>
+    <div id="layers">
+        <div id="lay" class="container text-center">
         </div>
     </div>
     <div id="map"></div>
@@ -47,7 +51,10 @@
 
     <div class="container">
         <div class="Propertie">
-            <h3 class="text-center">Draw Properties</h3><br><br>
+            <button type="button" class="close" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+            <h3 class="text-center">Draw Properties </h3><br><br>
 
             <div class="input-group mb-3">
                 <div class="input-group-prepend">

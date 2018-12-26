@@ -52,3 +52,24 @@ html, body {margin: 0; height: 100%; overflow: hidden}
 .list-group-item :hover{
     color: 	#ff6f69 !important;
 }
+.ol-zoom{
+    top: 2% !important;
+    left: 95% !important;
+    opacity: 0.8 !important;
+}
+.ol-control button {
+    background-color: white !important;
+    color: #000 !important;
+    width: 45px !important;
+}
+#layers{
+    position: absolute;
+    width: 200px;
+    background: white;
+    border-right: 1px solid #20262b;
+    border-radius: 10px;
+    top: 9%;
+    height: 92%;
+    z-index: 3;
+    padding: 10px;
+}
