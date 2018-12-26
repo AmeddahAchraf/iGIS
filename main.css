@@ -1,75 +1,213 @@
-html, body {margin: 0; height: 100%; overflow: hidden}
-#map{
+#map {
     width: 100%;
     height: 100%;
-    position:absolute;
-    top: 9%;
+    position: relative;
 }
-.Propertie{
-    padding: 40px;
-    background-color: white;
+
+.form-map * {
+    color: black
+}
+
+.header {
+    background: rgb(119, 152, 224);
+    background: #e9ecef;
+
+    max-height: 48px;
     position: absolute;
-    left: 35%;
-    top: 20%;
-    z-index: 2 !important;
-    border-radius: 10px;
-    display: none;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
 }
-.header{
-    z-index: 2 !important;
+
+.project-tabs {
+    height: 48px;
 }
-.hide{
-    display: none;
+
+.project-name {
+    font-weight: bold;
+    font-size: 18px
 }
-.tools{
+
+.action img {
+    max-width: 24px;
+    max-height: 24px;
+}
+
+.tab {
+    min-height: 100%;
+    font-weight: bold;
+    border-bottom: 2px solid black
+}
+
+.panel {
+    top: 52px;
+    bottom: 0;
+}
+
+
+.left-panel {
+    left: 0;
+    width: 220px;
+    background: transparent;
+}
+
+.right-panel {
+    right: 0;
+    width: 40px;
+    background: transparent;
+
+}
+
+.panel .item {
+    background: rgb(119, 152, 224);
+    background: #e9ecef;
+
+}
+
+.head .title {
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.head img {
+    max-width: 24px;
+}
+
+.layers {
+    flex: 1 0 0;
+}
+
+.layers-items {
+    flex: 1 0 0;
+}
+
+.layer-item .layer-actions img {
+    max-width: 12px;
+    cursor: pointer
+}
+
+.layer-item .layer-actions img:hover {
+    transform: scale(1.2)
+}
+
+.appearance {
+    min-height: 43%
+}
+
+.edit-tools {
+    flex: 1 0 0;
+}
+
+.edit-tools .tool:hover {
+    background: whitesmoke;
+}
+
+.edit-tools .tool img {
+    max-width: 20px;
+}
+
+.add {
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    position: fixed;
+}
+
+.add #back {
+    background: #b3b8bd;
     position: absolute;
-    background-color: white;
-    z-index: 3 !important;
-    top: 20%;
-    left: 95%;
-    border-radius: 4px;
-    opacity: 0.8;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    z-index: 9999;
+    opacity: 0.7;
 }
-.list-group-item {
-    font-size: 20px;
-    color: #000 !important;
-    padding: 0.75rem 0.75rem !important;
-}
-.sep{
-    padding: 1px;
-    background-color: grey;
-    width: 100%;
-}
-.nav-link{
-    color: #000 !important;
-}
-.nav-item{
-    margin: 5px;
-}
-.nav-item :hover{
-    color: 	#ff6f69 !important;
-}
-.list-group-item :hover{
-    color: 	#ff6f69 !important;
-}
-.ol-zoom{
-    top: 2% !important;
-    left: 95% !important;
-    opacity: 0.8 !important;
-}
-.ol-control button {
-    background-color: white !important;
-    color: #000 !important;
-    width: 45px !important;
-}
-#layers{
-    position: absolute;
-    width: 200px;
+
+.add .add-form {
+    z-index: 9999999;
+    position: relative;
     background: white;
-    border-right: 1px solid #20262b;
-    border-radius: 10px;
-    top: 9%;
-    height: 92%;
-    z-index: 3;
-    padding: 10px;
+}
+
+.add .input-group-text {
+    min-width: 100px;
+    text-align: center;
+}
+
+.form-title {
+    background: #e9ecef;
+}
+
+.input-row input {
+    min-width: 205px;
+}
+
+.attribute-table-wrapper {
+    bottom: 0;
+    right: 44px;
+    left: 224px;
+    height: calc(43% - 21.5px);
+    max-height: calc(43% - 21.5px);
+    background: #e9ecef;
+}
+
+.attribute-table-wrapper .title img {
+    max-width: 18px;
+}
+
+.attribute-table-actions .action {
+    position: relative;
+}
+
+.attribute-table-actions .action img {
+    max-width: 24px;
+    padding: 5px;
+}
+
+.attribute-table-actions .action ul {
+    position: absolute;
+    display: none;
+    background: #b3b8bd;
+    top: 100%;
+    left: 0;
+    min-width: 100%;
+}
+
+.attribute-table-actions .action ul li {
+    text-align: left;
+    color: whitesmoke;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 3px 5px;
+    list-style-type: none
+}
+
+.attribute-table-actions .action ul li:nth-child(1) {
+    border-bottom: 1px solid;
+}
+
+.attribute-table-actions .action:hover ul {
+    display: block;
+}
+
+.attribute-table {
+    overflow: scroll;
+    background: white;
+    text-align: center;
+}
+
+.table td {
+    padding: 4px !important;
+}
+
+.add-attribute {
+    display: none;
+}
+
+.appearance-properties input {
+    min-width: 50px;
+    min-height: 40px;
 }
