@@ -34,6 +34,9 @@ import Feature from 'ol/Feature.js';
 import $ from 'jquery';
 require('bootstrap/dist/css/bootstrap.css');
 require('font-awesome/css/font-awesome.css');
+// import jquery 
+import $ from 'jquery';
+console.log($("div")) ;
 
 
 window.onload = firstLoad;
