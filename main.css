@@ -73,3 +73,10 @@ html, body {margin: 0; height: 100%; overflow: hidden}
     z-index: 3;
     padding: 10px;
 }
+.icon{
+    opacity: 0.8;
+}
+.icon:hover{
+    opacity: 1;
+    transform: scale(1.1);
+}

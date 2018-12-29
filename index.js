@@ -31,8 +31,10 @@ import {
 import WKT from 'ol/format/WKT.js';
 import Feature from 'ol/Feature.js';
 
+import $ from 'jquery';
 require('bootstrap/dist/css/bootstrap.css');
 require('font-awesome/css/font-awesome.css');
+
 
 window.onload = firstLoad;
 var _fileName;
@@ -56,9 +58,11 @@ var modify = new Modify({
 var jsonObjects = Array();
 var _wkt;
 var _feature;
+var _Gid;
 var _pid = 0;
+var _nbElem = 0;
 var _perfc = false;
-var _nbElem=0;
+var _new = true;
 var typeSelect = 'LineString';
 
 
@@ -115,7 +119,7 @@ function openFile(event) {
         var json = JSON.parse(reader.result);
         if (json != 0) {
             //localStorage.setItem("stringObjects", reader.result);
-            json.forEach(function(elem) {
+            json.forEach((elem) => {
                 jsonObjects.push(elem);
                 var wktObject = new WKT();
                 var feature = wktObject.readFeature(elem.wkt);
@@ -132,8 +136,8 @@ function openFile(event) {
                 source.addFeature(feature);
                 document.getElementById('lay').insertAdjacentHTML(
                     'beforeend',
-                    '<span class="input-group-text" id="draw'+_nbElem+'">'+elem.name+'</span>');
-                    _nbElem++;
+                    '<span class="input-group-text" id="draw' + _nbElem + '">' + elem.name + '<i id="Setting' + _nbElem + '" class="fa fa-cog fa-fw icon" style="display: block; margin-left: auto;"></i></span> ');
+                _nbElem++;
             });
         }
     }
@@ -211,6 +215,7 @@ function addInteraction() {
             _feature = e.feature;
             document.getElementById('addedProp').innerHTML = '';
             _pid = 0;
+            _new = true;
             showPropertie();
 
         })
@@ -225,22 +230,45 @@ function showPropertie() {
     element.style.display = "block";
 }
 
-document.getElementById('cancelDraw').addEventListener('click', function() {
+function hidePropertie() {
     var element = document.getElementsByClassName('Propertie')[0];
     element.style.display = "none";
-    source.removeFeature(_feature);
+}
+
+function showDataInPropertie(id) {
+    $('#addedProp').html('');
+    $('#name').val(jsonObjects[id].name);
+    console.log(jsonObjects[id]);
+    if (jsonObjects[id].Pnames.length > 0) {
+        var htmlString = '';
+        for (var i = 0; i < jsonObjects[id].Pnames.length; i++) {
+            htmlString += '<div class="input-group mb-3"><div class="input-group-prepend">    <input id="Pname' + i + '" type="text" class="form-control exist" aria-label="Default" aria-describedby="inputGroup-sizing-default" Value=' + jsonObjects[id].Pnames[i] + '>   </div>    <input id="Pvalue' + i + '" type="text" class="form-control" aria-label="Default" aria-describedby="inputGroup-sizing-default"Value=' + jsonObjects[id].Pvalues[i] + '></div>';
+        }
+        $('#addedProp').html(htmlString);
+    }
+    _pid = jsonObjects[id].Pnames.length;
+
+}
+
+document.getElementById('cancelDraw').addEventListener('click', function() {
+    hidePropertie();
+    if (_new) {
+        source.removeFeature(_feature);
+    }
     map.removeInteraction(draw);
     addInteraction();
 }, false);
 
 document.getElementById('saveDraw').addEventListener('click', function() {
-    var element = document.getElementsByClassName('Propertie')[0];
-    element.style.display = "none";
+    hidePropertie()
     //Get Properties
     var name = document.getElementById('name').value;
     var fill = document.getElementById('fill').value;
     var stroke = document.getElementById('stroke').value;
     var tmp = hexToRgb(fill);
+
+    console.log("hello");
+    console.log(jsonObjects[_Gid]);
 
     fill = 'rgba(' + tmp[0] + ',' + tmp[1] + ',' + tmp[2] + ',0.5)';
     var style = new Style({
@@ -252,7 +280,6 @@ document.getElementById('saveDraw').addEventListener('click', function() {
             width: 1
         })
     });
-    _feature.setStyle(style);
 
     var Pnames = Array();
     var Pvalues = Array();
@@ -274,14 +301,21 @@ document.getElementById('saveDraw').addEventListener('click', function() {
         'Pnames': Pnames,
         'Pvalues': Pvalues
     };
-    jsonObjects.push(jsonObject);
-    console.log(jsonObjects);
-
-    document.getElementById('lay').insertAdjacentHTML(
-        'beforeend',
-        '<span class="input-group-text" id="draw'+_nbElem+'">'+name+'</span>');
-
-    _nbElem++;//Increment nb of elements
+    if (_new) {
+        _feature.setStyle(style);
+        jsonObjects.push(jsonObject);
+        //Add layer to the left layer Div
+        document.getElementById('lay').insertAdjacentHTML(
+            'beforeend',
+            '<span class="input-group-text" id="draw' + _nbElem + '">' + name + '<i id="Setting' + _nbElem + '" class="fa fa-cog fa-fw icon" style="display: block; margin-left: auto;"></i></span> ');
+        _nbElem++; //Increment nb of elements
+    } else {
+        _feature = source.getFeatures()[_Gid];
+        _feature.setStyle(style);
+        jsonObject.wkt = jsonObjects[_Gid].wkt;
+        $('#draw' + _Gid).html(name + '<i id="Setting' + _Gid + '" class="fa fa-cog fa-fw icon" style="display: block; margin-left: auto;"></i>');
+        jsonObjects[_Gid] = jsonObject;
+    }
     map.removeInteraction(draw);
     addInteraction();
 }, false);
@@ -299,7 +333,7 @@ document.getElementById('addProp').addEventListener('click', function() {
 }, false);
 
 document.addEventListener('mouseover', function(e) {
-    if (e.target.id.indexOf('draw') != -1) {
+    if (e.target.id.indexOf('draw') != -1 || e.target.id.indexOf('Setting') != -1) {
         resetStyle();
         _perfc = true;
         var id = parseInt(e.target.id.replace(/^\D+/g, ''));
@@ -320,9 +354,9 @@ document.addEventListener('mouseover', function(e) {
 });
 
 function resetStyle() {
-    if (_perfc && jsonObjects.length>=1 ) {
+    if (_perfc && jsonObjects.length >= 1) {
         var styleAr = Array();
-        jsonObjects.forEach(function(elem) {
+        jsonObjects.forEach((elem) => {
             var style = new Style({
                 fill: new Fill({
                     color: elem.style.fill
@@ -339,6 +373,15 @@ function resetStyle() {
         for (var i = 0; i < length; i++) {
             features[i].setStyle(styleAr[i]);
         }
-        _perfc=false;
+        _perfc = false;
     }
 }
+document.addEventListener('click', function(e) {
+    if (e.target.id.indexOf('Setting') != -1) {
+        _new = false;
+        var id = parseInt(e.target.id.replace(/^\D+/g, ''));
+        _Gid = id;
+        showPropertie();
+        showDataInPropertie(id);
+    }
+});
