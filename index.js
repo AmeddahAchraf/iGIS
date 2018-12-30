@@ -34,15 +34,9 @@ import Feature from 'ol/Feature.js';
 import $ from 'jquery';
 require('bootstrap/dist/css/bootstrap.css');
 require('font-awesome/css/font-awesome.css');
-// import jquery 
-import $ from 'jquery';
-console.log($("div")) ;
 
 
 window.onload = firstLoad;
-var _fileName;
-var draw;
-var map;
 var extent = [0, 0, 1024, 968];
 var projection = new Projection({
     units: 'pixels',
@@ -58,10 +52,15 @@ var modify = new Modify({
     source: source
 });
 
+var _fileName;
+var draw;
+var map;
+
 var jsonObjects = Array();
 var _wkt;
 var _feature;
 var _Gid;
+
 var _pid = 0;
 var _nbElem = 0;
 var _perfc = false;
@@ -83,6 +82,7 @@ document.getElementById('openMap').addEventListener('click', openMap, false);
 document.getElementById('line').addEventListener('click', drawLine, false);
 document.getElementById('poly').addEventListener('click', drawPoly, false);
 document.getElementById('circle').addEventListener('click', drawCircle, false);
+document.getElementById('deleteDraw').addEventListener('click', deleteDraw, false);
 
 function openMap() {
     document.getElementById('file-input').click();
@@ -91,6 +91,9 @@ function openMap() {
 function exportPr() {
     var NameFile = prompt("Save as :");
     if (NameFile != null) {
+        jsonObjects.forEach((e,i)=>{
+            e.id=i;
+        });
         var text = JSON.stringify(jsonObjects); //transform it to string
         var a = document.createElement('a');
         var blob = new Blob([text], {
@@ -121,8 +124,7 @@ function openFile(event) {
     reader.onload = function() {
         var json = JSON.parse(reader.result);
         if (json != 0) {
-            //localStorage.setItem("stringObjects", reader.result);
-            json.forEach((elem) => {
+            json.forEach((elem, i) => {
                 jsonObjects.push(elem);
                 var wktObject = new WKT();
                 var feature = wktObject.readFeature(elem.wkt);
@@ -136,6 +138,7 @@ function openFile(event) {
                     })
                 });
                 feature.setStyle(style);
+                feature.setId(i);
                 source.addFeature(feature);
                 document.getElementById('lay').insertAdjacentHTML(
                     'beforeend',
@@ -202,6 +205,32 @@ function drawCircle() {
     addInteraction();
 }
 
+function jsonID() {
+    var id = -1;
+    jsonObjects.forEach((object, i) => {
+        if (object.id == _Gid) {
+            id = i;
+        }
+    });
+    return id;
+}
+
+function deleteDraw() {
+    hidePropertie();
+    //Delete feature from source layer
+    var features = source.getFeatures();
+    features.forEach((feature) => {
+        if (feature.getId() == _Gid) {
+            source.removeFeature(feature);
+        }
+    })
+    //Delete Draw from the array
+    jsonObjects.splice(jsonID(), 1);
+
+    //Delete span from html
+    $('#draw' + _Gid).remove();
+}
+
 function addInteraction() {
     var save = false;
     var value = typeSelect;
@@ -219,6 +248,7 @@ function addInteraction() {
             document.getElementById('addedProp').innerHTML = '';
             _pid = 0;
             _new = true;
+            $('#deleteDraw').addClass('hide');
             showPropertie();
 
         })
@@ -238,10 +268,10 @@ function hidePropertie() {
     element.style.display = "none";
 }
 
-function showDataInPropertie(id) {
+function showDataInPropertie() {
+    var id = jsonID();
     $('#addedProp').html('');
     $('#name').val(jsonObjects[id].name);
-    console.log(jsonObjects[id]);
     if (jsonObjects[id].Pnames.length > 0) {
         var htmlString = '';
         for (var i = 0; i < jsonObjects[id].Pnames.length; i++) {
@@ -250,6 +280,10 @@ function showDataInPropertie(id) {
         $('#addedProp').html(htmlString);
     }
     _pid = jsonObjects[id].Pnames.length;
+
+    if (!_new) {
+        $('#deleteDraw').removeClass('hide');
+    }
 
 }
 
@@ -263,16 +297,13 @@ document.getElementById('cancelDraw').addEventListener('click', function() {
 }, false);
 
 document.getElementById('saveDraw').addEventListener('click', function() {
+
     hidePropertie()
     //Get Properties
     var name = document.getElementById('name').value;
     var fill = document.getElementById('fill').value;
     var stroke = document.getElementById('stroke').value;
     var tmp = hexToRgb(fill);
-
-    console.log("hello");
-    console.log(jsonObjects[_Gid]);
-
     fill = 'rgba(' + tmp[0] + ',' + tmp[1] + ',' + tmp[2] + ',0.5)';
     var style = new Style({
         fill: new Fill({
@@ -283,7 +314,6 @@ document.getElementById('saveDraw').addEventListener('click', function() {
             width: 1
         })
     });
-
     var Pnames = Array();
     var Pvalues = Array();
     var propElements = document.getElementsByClassName('exist');
@@ -293,11 +323,14 @@ document.getElementById('saveDraw').addEventListener('click', function() {
             Pvalues[i] = document.getElementById('Pvalue' + i).value;
         }
     }
+
+
     var styleJson = {
         'fill': fill,
         'stroke': stroke
     }
     var jsonObject = {
+        'id': _nbElem,
         'name': name,
         'style': styleJson,
         'wkt': _wkt,
@@ -305,7 +338,10 @@ document.getElementById('saveDraw').addEventListener('click', function() {
         'Pvalues': Pvalues
     };
     if (_new) {
+        console.log("new");
         _feature.setStyle(style);
+        _feature.setId(_nbElem);
+        source.addFeature(_feature);
         jsonObjects.push(jsonObject);
         //Add layer to the left layer Div
         document.getElementById('lay').insertAdjacentHTML(
@@ -313,12 +349,17 @@ document.getElementById('saveDraw').addEventListener('click', function() {
             '<span class="input-group-text" id="draw' + _nbElem + '">' + name + '<i id="Setting' + _nbElem + '" class="fa fa-cog fa-fw icon" style="display: block; margin-left: auto;"></i></span> ');
         _nbElem++; //Increment nb of elements
     } else {
-        _feature = source.getFeatures()[_Gid];
+        _feature = source.getFeatureById(_Gid);
         _feature.setStyle(style);
-        jsonObject.wkt = jsonObjects[_Gid].wkt;
+        var id = jsonID();
+
+        jsonObject.wkt = jsonObjects[id].wkt;
+        jsonObject.id = jsonObjects[id].id;
         $('#draw' + _Gid).html(name + '<i id="Setting' + _Gid + '" class="fa fa-cog fa-fw icon" style="display: block; margin-left: auto;"></i>');
-        jsonObjects[_Gid] = jsonObject;
+        jsonObjects[id] = jsonObject;
     }
+
+    console.log(jsonObjects);
     map.removeInteraction(draw);
     addInteraction();
 }, false);
@@ -327,11 +368,11 @@ document.getElementById('addProp').addEventListener('click', function() {
     document.getElementById('addedProp').insertAdjacentHTML(
         'beforeend',
         '<div class="input-group mb-3">\
-    <div class="input-group-prepend">\
-    <input id="Pname' + _pid + '"type="text" class="form-control exist" aria-label="Default" aria-describedby="inputGroup-sizing-default" placeholder="Propertie">\
-    </div>\
-    <input id="Pvalue' + _pid + '" type="text" class="form-control" aria-label="Default" aria-describedby="inputGroup-sizing-default" placeholder="Value">\
-</div>');
+        <div class="input-group-prepend">\
+        <input id="Pname' + _pid + '"type="text" class="form-control exist" aria-label="Default" aria-describedby="inputGroup-sizing-default" placeholder="Propertie">\
+        </div>\
+        <input id="Pvalue' + _pid + '" type="text" class="form-control" aria-label="Default" aria-describedby="inputGroup-sizing-default" placeholder="Value">\
+        </div>');
     _pid++;
 }, false);
 
@@ -340,7 +381,7 @@ document.addEventListener('mouseover', function(e) {
         resetStyle();
         _perfc = true;
         var id = parseInt(e.target.id.replace(/^\D+/g, ''));
-        var feature = source.getFeatures()[id];
+        var feature = source.getFeatureById(id);
         var style = new Style({
             fill: new Fill({
                 color: 'rgba(0,253,255,0.5'
@@ -359,6 +400,7 @@ document.addEventListener('mouseover', function(e) {
 function resetStyle() {
     if (_perfc && jsonObjects.length >= 1) {
         var styleAr = Array();
+        //console.log(jsonObjects.length,source.getFeatures().length);
         jsonObjects.forEach((elem) => {
             var style = new Style({
                 fill: new Fill({
@@ -371,20 +413,17 @@ function resetStyle() {
             });
             styleAr.push(style);
         });
-        var features = source.getFeatures();
-        var length = features.length;
-        for (var i = 0; i < length; i++) {
-            features[i].setStyle(styleAr[i]);
-        }
+        source.getFeatures().forEach((f, i) => {
+            f.setStyle(styleAr[i]);
+        })
         _perfc = false;
     }
 }
 document.addEventListener('click', function(e) {
     if (e.target.id.indexOf('Setting') != -1) {
         _new = false;
-        var id = parseInt(e.target.id.replace(/^\D+/g, ''));
-        _Gid = id;
+        _Gid = parseInt(e.target.id.replace(/^\D+/g, ''));
         showPropertie();
-        showDataInPropertie(id);
+        showDataInPropertie();
     }
 });
