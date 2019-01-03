@@ -7,7 +7,6 @@
 </head>
 
 <body>
-
     <div class="header">
         <nav class="navbar navbar-expand-md navbar-light bg-light ">
             <a class="navbar-brand" href="#"><i class="fa fa-compass fa-lg"></i> iGis</a>
@@ -20,10 +19,13 @@
                         <a id="openMap" class="nav-link" href="#"><i class="fa fa-globe"></i> Open Map</a>
                     </li>
                     <li class="nav-item">
-                        <a id="importPr" class="nav-link" href="#"><i class="fa fa-download"></i> Import Project</a>
+                        <a id="importPr" class="nav-link" href="#"><i class="fa fa-download"></i> Import Layer</a>
                     </li>
                     <li class="nav-item">
-                        <a id="exportPr" class="nav-link" href="#"><i class="fa fa-upload"></i> Export Project</a>
+                        <a id="exportPr" class="nav-link" href="#"><i class="fa fa-upload"></i> Export Layer</a>
+                    </li>
+                    <li class="nav-item">
+                        <a id="export-png" class="nav-link" href="#"><i class="fa fa-save"></i> Save PNG</a>
                     </li>
                 </ul>
             </div>
@@ -36,7 +38,7 @@
             <a id="line" class="list-group-item" href="#"><i class="fa fa-arrows-h fa-fw icon" ></i></a>
             <a id="poly" class="list-group-item" href="#"><i class="fa fa-square-o fa-fw icon"></i></a>
             <a id="circle" class="list-group-item" href="#"><i class="fa fa-circle-thin fa-fw"></i></a>
-            <a class="list-group-item" href="#"><i class="fa fa-cog fa-fw"></i></a>
+            <a id="grid" class="list-group-item" href="#"><i class="fa fa-th fa-fw"></i></a>
         </div>
     </div>
     <div id="layers">
@@ -48,48 +50,51 @@
 
 
     <!-- BEGIN Propertie Div:  -->
-
-    <div class="container">
-        <div class="Propertie">
-            <button type="button" class="close" aria-label="Close">
+    <div class="modal fade Propertie" id="myModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 class="text-center">Draw Properties </h2><br><br>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
-            <h3 class="text-center">Draw Properties </h3><br><br>
-
-            <div class="input-group mb-3">
-                <div class="input-group-prepend">
-                    <span class="input-group-text" id="inputGroup-sizing-default">Name</span>
-                </div>
-                <input id="name" type="text" class="form-control" aria-label="Default" aria-describedby="inputGroup-sizing-default" placeholder="Algeria">
-            </div>
-            <div class="input-group mb-3">
-                <div class="input-group-prepend">
-                    <span class="input-group-text" id="inputGroup-sizing-default">Style </span>
-                </div>
-                <input id="fill" type="color" class="form-control" aria-label="Default" aria-describedby="inputGroup-sizing-default">
-                <input id="stroke" type="color" class="form-control" aria-label="Default" aria-describedby="inputGroup-sizing-default">
-            </div>
-            <div id="addedProp">
-            </div>
-            <button id="addProp" type="button" class="btn btn-outline-secondary"><i class="fa fa-plus-square-o" aria-hidden="true"></i></button>
-            <br><br>
-
-            <div class="row">
-                <div class="col md-2">
-                    <button id="cancelDraw" type="button" class="btn btn-outline-dark fWid">Cancel</button>
-                </div>
-                <div class="col md-2">
-                    <button id="deleteDraw" type="button" class="btn btn-outline-danger hide fWid">Delete</button>
-                </div>
-                <div class="col md-2">
-                    <button id="saveDraw" type="button" class="btn btn-outline-success fWid">Save </button>
-                </div>
-            </div>
-
+          </div>
+          <div class="modal-body">
+              <div class="input-group mb-3">
+                  <div class="input-group-prepend">
+                      <span class="input-group-text" id="inputGroup-sizing-default">Name</span>
+                  </div>
+                  <input id="name" type="text" class="form-control" aria-label="Default" aria-describedby="inputGroup-sizing-default" placeholder="Algeria" required/>
+              </div>
+              <div class="input-group mb-3">
+                  <div class="input-group-prepend">
+                      <span class="input-group-text" id="inputGroup-sizing-default">Style </span>
+                  </div>
+                  <input id="fill" type="color" class="form-control" >
+                  <input id="stroke" type="color" class="form-control">
+              </div>
+              <div id="addedProp">
+              </div>
+              <button id="addProp" type="button" class="btn btn-outline-secondary"><i class="fa fa-plus-square-o" aria-hidden="true"></i></button>
+              <br><br>
+          </div>
+          <div class="modal-footer">
+              <div class="col md-2">
+                  <button id="cancelDraw" type="button" class="btn btn-outline-dark fWid" data-dismiss="modal">Cancel</button>
+              </div>
+              <div class="col md-2">
+                  <button id="deleteDraw" type="button" class="btn btn-outline-danger hide fWid">Delete</button>
+              </div>
+              <div class="col md-2">
+                  <button id="saveDraw" class="btn btn-outline-success fWid">Save </button>
+              </div>
+          </div>
         </div>
+      </div>
     </div>
 
-    <!-- END Propertie Div:  -->
+
+        <!-- END Propertie Div:  -->
 
 
 </body>

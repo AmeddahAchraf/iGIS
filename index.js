@@ -33,7 +33,9 @@ import Feature from 'ol/Feature.js';
 
 import $ from 'jquery';
 require('bootstrap/dist/css/bootstrap.css');
+require('bootstrap/dist/js/bootstrap.js');
 require('font-awesome/css/font-awesome.css');
+
 
 
 window.onload = firstLoad;
@@ -65,6 +67,7 @@ var _pid = 0;
 var _nbElem = 0;
 var _perfc = false;
 var _new = true;
+var _save = false;
 var typeSelect = 'LineString';
 
 
@@ -83,6 +86,24 @@ document.getElementById('line').addEventListener('click', drawLine, false);
 document.getElementById('poly').addEventListener('click', drawPoly, false);
 document.getElementById('circle').addEventListener('click', drawCircle, false);
 document.getElementById('deleteDraw').addEventListener('click', deleteDraw, false);
+document.getElementById('export-png').addEventListener('click', savePNG, false);
+document.getElementById('cancelDraw').addEventListener('click', cancelDraw, false);
+document.getElementById('saveDraw').addEventListener('click', saveDraw, false);
+
+
+function savePNG() {
+    map.once('rendercomplete', function(event) {
+        var canvas = event.context.canvas;
+        if (navigator.msSaveBlob) {
+            navigator.msSaveBlob(canvas.msToBlob(), 'map.png');
+        } else {
+            canvas.toBlob(function(blob) {
+                saveAs(blob, 'map.png');
+            });
+        }
+    });
+    map.renderSync();
+}
 
 function openMap() {
     document.getElementById('file-input').click();
@@ -91,9 +112,6 @@ function openMap() {
 function exportPr() {
     var NameFile = prompt("Save as :");
     if (NameFile != null) {
-        jsonObjects.forEach((e,i)=>{
-            e.id=i;
-        });
         var text = JSON.stringify(jsonObjects); //transform it to string
         var a = document.createElement('a');
         var blob = new Blob([text], {
@@ -114,8 +132,10 @@ function importPr() {
     input.type = 'file';
     input.id = 'Karo';
     input.accept = '.iGis';
-    document.getElementById('Karo').addEventListener('change', openFile, false);
+    var karo = document.getElementById('Karo');
+    karo.addEventListener('change', openFile, false);
     input.click();
+    karo.parentNode.removeChild(karo);
 }
 
 function openFile(event) {
@@ -124,8 +144,7 @@ function openFile(event) {
     reader.onload = function() {
         var json = JSON.parse(reader.result);
         if (json != 0) {
-            json.forEach((elem, i) => {
-                jsonObjects.push(elem);
+            json.forEach((elem) => {
                 var wktObject = new WKT();
                 var feature = wktObject.readFeature(elem.wkt);
                 var style = new Style({
@@ -138,8 +157,10 @@ function openFile(event) {
                     })
                 });
                 feature.setStyle(style);
-                feature.setId(i);
+                feature.setId(_nbElem);
                 source.addFeature(feature);
+                elem.id = _nbElem;
+                jsonObjects.push(elem);
                 document.getElementById('lay').insertAdjacentHTML(
                     'beforeend',
                     '<span class="input-group-text" id="draw' + _nbElem + '">' + elem.name + '<i id="Setting' + _nbElem + '" class="fa fa-cog fa-fw icon" style="display: block; margin-left: auto;"></i></span> ');
@@ -241,7 +262,6 @@ function addInteraction() {
             freehand: false
         });
         draw.on('drawend', function(e) {
-
             var format = new WKT();
             _wkt = format.writeGeometry(e.feature.getGeometry());
             _feature = e.feature;
@@ -250,22 +270,18 @@ function addInteraction() {
             _new = true;
             $('#deleteDraw').addClass('hide');
             showPropertie();
-
         })
-
         map.addInteraction(draw);
         map.addInteraction(modify);
     }
 }
 
 function showPropertie() {
-    var element = document.getElementsByClassName('Propertie')[0];
-    element.style.display = "block";
+    $('#myModal').modal('show');
 }
 
 function hidePropertie() {
-    var element = document.getElementsByClassName('Propertie')[0];
-    element.style.display = "none";
+    $('#myModal').modal('hide');
 }
 
 function showDataInPropertie() {
@@ -287,82 +303,99 @@ function showDataInPropertie() {
 
 }
 
-document.getElementById('cancelDraw').addEventListener('click', function() {
-    hidePropertie();
-    if (_new) {
-        source.removeFeature(_feature);
-    }
-    map.removeInteraction(draw);
-    addInteraction();
-}, false);
-
-document.getElementById('saveDraw').addEventListener('click', function() {
-
-    hidePropertie()
-    //Get Properties
-    var name = document.getElementById('name').value;
-    var fill = document.getElementById('fill').value;
-    var stroke = document.getElementById('stroke').value;
-    var tmp = hexToRgb(fill);
-    fill = 'rgba(' + tmp[0] + ',' + tmp[1] + ',' + tmp[2] + ',0.5)';
-    var style = new Style({
-        fill: new Fill({
-            color: fill
-        }),
-        stroke: new Stroke({
-            color: stroke,
-            width: 1
+function resetStyle() {
+    if (_perfc && jsonObjects.length >= 1) {
+        var styleAr = Array();
+        //console.log(jsonObjects.length,source.getFeatures().length);
+        jsonObjects.forEach((elem) => {
+            var style = new Style({
+                fill: new Fill({
+                    color: elem.style.fill
+                }),
+                stroke: new Stroke({
+                    color: elem.style.stroke,
+                    width: 1
+                })
+            });
+            styleAr.push(style);
+        });
+        source.getFeatures().forEach((f, i) => {
+            f.setStyle(styleAr[i]);
         })
-    });
-    var Pnames = Array();
-    var Pvalues = Array();
-    var propElements = document.getElementsByClassName('exist');
-    if (propElements.length != 0) {
-        for (var i = 0; i < propElements.length; i++) {
-            Pnames[i] = document.getElementById('Pname' + i).value;
-            Pvalues[i] = document.getElementById('Pvalue' + i).value;
+        _perfc = false;
+    }
+}
+
+function cancelDraw() {
+    hidePropertie();
+}
+
+function saveDraw() {
+    var name = document.getElementById('name').value;
+    if (name != '') {
+        _save = true;
+        hidePropertie();
+        //Get Properties
+        var fill = document.getElementById('fill').value;
+        var stroke = document.getElementById('stroke').value;
+        var tmp = hexToRgb(fill);
+        fill = 'rgba(' + tmp[0] + ',' + tmp[1] + ',' + tmp[2] + ',0.5)';
+        var style = new Style({
+            fill: new Fill({
+                color: fill
+            }),
+            stroke: new Stroke({
+                color: stroke,
+                width: 1
+            })
+        });
+        var Pnames = Array();
+        var Pvalues = Array();
+        var propElements = document.getElementsByClassName('exist');
+        if (propElements.length != 0) {
+            for (var i = 0; i < propElements.length; i++) {
+                Pnames[i] = document.getElementById('Pname' + i).value;
+                Pvalues[i] = document.getElementById('Pvalue' + i).value;
+            }
         }
+
+        var styleJson = {
+            'fill': fill,
+            'stroke': stroke
+        }
+        var jsonObject = {
+            'id': _nbElem,
+            'name': name,
+            'style': styleJson,
+            'wkt': _wkt,
+            'Pnames': Pnames,
+            'Pvalues': Pvalues
+        };
+        if (_new) {
+            _feature.setStyle(style);
+            _feature.setId(_nbElem);
+            source.addFeature(_feature);
+            jsonObjects.push(jsonObject);
+            //Add layer to the left layer Div
+            document.getElementById('lay').insertAdjacentHTML(
+                'beforeend',
+                '<span class="input-group-text" id="draw' + _nbElem + '">' + name + '<i id="Setting' + _nbElem + '" class="fa fa-cog fa-fw icon" style="display: block; margin-left: auto;"></i></span> ');
+            _nbElem++; //Increment nb of elements
+        } else {
+            _feature = source.getFeatureById(_Gid);
+            _feature.setStyle(style);
+            var id = jsonID();
+
+            jsonObject.wkt = jsonObjects[id].wkt;
+            jsonObject.id = jsonObjects[id].id;
+            $('#draw' + _Gid).html(name + '<i id="Setting' + _Gid + '" class="fa fa-cog fa-fw icon" style="display: block; margin-left: auto;"></i>');
+            jsonObjects[id] = jsonObject;
+        }
+        map.removeInteraction(draw);
+        addInteraction();
     }
 
-
-    var styleJson = {
-        'fill': fill,
-        'stroke': stroke
-    }
-    var jsonObject = {
-        'id': _nbElem,
-        'name': name,
-        'style': styleJson,
-        'wkt': _wkt,
-        'Pnames': Pnames,
-        'Pvalues': Pvalues
-    };
-    if (_new) {
-        console.log("new");
-        _feature.setStyle(style);
-        _feature.setId(_nbElem);
-        source.addFeature(_feature);
-        jsonObjects.push(jsonObject);
-        //Add layer to the left layer Div
-        document.getElementById('lay').insertAdjacentHTML(
-            'beforeend',
-            '<span class="input-group-text" id="draw' + _nbElem + '">' + name + '<i id="Setting' + _nbElem + '" class="fa fa-cog fa-fw icon" style="display: block; margin-left: auto;"></i></span> ');
-        _nbElem++; //Increment nb of elements
-    } else {
-        _feature = source.getFeatureById(_Gid);
-        _feature.setStyle(style);
-        var id = jsonID();
-
-        jsonObject.wkt = jsonObjects[id].wkt;
-        jsonObject.id = jsonObjects[id].id;
-        $('#draw' + _Gid).html(name + '<i id="Setting' + _Gid + '" class="fa fa-cog fa-fw icon" style="display: block; margin-left: auto;"></i>');
-        jsonObjects[id] = jsonObject;
-    }
-
-    console.log(jsonObjects);
-    map.removeInteraction(draw);
-    addInteraction();
-}, false);
+}
 
 document.getElementById('addProp').addEventListener('click', function() {
     document.getElementById('addedProp').insertAdjacentHTML(
@@ -397,28 +430,6 @@ document.addEventListener('mouseover', function(e) {
     }
 });
 
-function resetStyle() {
-    if (_perfc && jsonObjects.length >= 1) {
-        var styleAr = Array();
-        //console.log(jsonObjects.length,source.getFeatures().length);
-        jsonObjects.forEach((elem) => {
-            var style = new Style({
-                fill: new Fill({
-                    color: elem.style.fill
-                }),
-                stroke: new Stroke({
-                    color: elem.style.stroke,
-                    width: 1
-                })
-            });
-            styleAr.push(style);
-        });
-        source.getFeatures().forEach((f, i) => {
-            f.setStyle(styleAr[i]);
-        })
-        _perfc = false;
-    }
-}
 document.addEventListener('click', function(e) {
     if (e.target.id.indexOf('Setting') != -1) {
         _new = false;
@@ -426,4 +437,12 @@ document.addEventListener('click', function(e) {
         showPropertie();
         showDataInPropertie();
     }
+});
+
+$('#myModal').on('hidden.bs.modal', function(e) {
+    if (!_save && _new) {
+        source.removeFeature(_feature);
+        //cancelDraw();
+    }
+    _save = false;
 });
