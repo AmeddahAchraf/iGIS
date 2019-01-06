@@ -30,13 +30,30 @@ import {
 } from 'ol/style.js';
 import WKT from 'ol/format/WKT.js';
 import Feature from 'ol/Feature.js';
+import {
+    unByKey
+} from 'ol/Observable.js';
+import Overlay from 'ol/Overlay.js';
+import {
+    getArea,
+    getLength
+} from 'ol/sphere.js';
+import {
+    LineString,
+    Polygon
+} from 'ol/geom.js';
+
+
+
+
+
 
 import $ from 'jquery';
+import saveAs from 'file-saver';
+
 require('bootstrap/dist/css/bootstrap.css');
 require('bootstrap/dist/js/bootstrap.js');
 require('font-awesome/css/font-awesome.css');
-
-
 
 window.onload = firstLoad;
 var extent = [0, 0, 1024, 968];
@@ -69,6 +86,8 @@ var _perfc = false;
 var _new = true;
 var _save = false;
 var typeSelect = 'LineString';
+var type = 0; // 0 Normale // 1 Measure
+var listener; // Lisen for measurement
 
 
 //Hex To Rgb transformation
@@ -87,9 +106,24 @@ document.getElementById('poly').addEventListener('click', drawPoly, false);
 document.getElementById('circle').addEventListener('click', drawCircle, false);
 document.getElementById('deleteDraw').addEventListener('click', deleteDraw, false);
 document.getElementById('export-png').addEventListener('click', savePNG, false);
-document.getElementById('cancelDraw').addEventListener('click', cancelDraw, false);
+document.getElementById('cancelDraw').addEventListener('click', hidePropertie, false);
 document.getElementById('saveDraw').addEventListener('click', saveDraw, false);
+document.getElementById('lineM').addEventListener('click', measureLine, false);
+document.getElementById('polyM').addEventListener('click', measurePoly, false);
 
+function measureLine() {
+    typeSelect = 'LineString';
+    type = 1;
+    map.removeInteraction(draw);
+    addInteraction();
+}
+
+function measurePoly() {
+    typeSelect = 'Polygon';
+    type = 1;
+    map.removeInteraction(draw);
+    addInteraction();
+}
 
 function savePNG() {
     map.once('rendercomplete', function(event) {
@@ -112,6 +146,7 @@ function openMap() {
 function exportPr() {
     var NameFile = prompt("Save as :");
     if (NameFile != null) {
+        reloadModifiedDraw();
         var text = JSON.stringify(jsonObjects); //transform it to string
         var a = document.createElement('a');
         var blob = new Blob([text], {
@@ -123,6 +158,26 @@ function exportPr() {
         a.click();
         window.URL.revokeObjectURL(url);
     }
+}
+
+function reloadModifiedDraw() {
+    var feauturs = source.getFeatures();
+    feauturs.forEach((elem) => {
+        var wkt = new WKT().writeGeometry(elem.getGeometry());
+        var lid = elem.getId();
+        var oID = getObjectID(lid);
+        jsonObjects[oID].wkt = wkt;
+    });
+}
+
+function getObjectID(lid) {
+    var oID = -1;
+    jsonObjects.forEach((obj, i) => {
+        if (obj.id == lid) {
+            oID = i;
+        }
+    });
+    return oID;
 }
 
 function importPr() {
@@ -173,11 +228,12 @@ function openFile(event) {
 
 function firstLoad() {
     _fileName = "germany-map.jpg";
+    $('[data-toggle="tooltip"]').tooltip();
     loadMap();
 }
 
 function readSingleFile(e) {
-    _fileName = e.target.files[0].name;
+    _fileName = URL.createObjectURL(e.target.files[0]);
     var parent = document.getElementById("map");
     var child = document.getElementsByClassName("ol-viewport")[0];
     parent.removeChild(child);
@@ -189,7 +245,7 @@ function loadMap() {
         layers: [
             new ImageLayer({
                 source: new Static({
-                    url: 'http://127.0.0.1:8080/' + _fileName,
+                    url: _fileName,
                     projection: projection,
                     imageExtent: extent
                 })
@@ -210,12 +266,14 @@ function loadMap() {
 
 function drawLine() {
     typeSelect = 'LineString';
+    type = 0;
     map.removeInteraction(draw);
     addInteraction();
 }
 
 function drawPoly() {
     typeSelect = 'Polygon';
+    type = 0;
     map.removeInteraction(draw);
     addInteraction();
 }
@@ -255,22 +313,62 @@ function deleteDraw() {
 function addInteraction() {
     var save = false;
     var value = typeSelect;
+
     if (value !== 'None') {
-        draw = new Draw({
-            source: source,
-            type: value,
-            freehand: false
-        });
-        draw.on('drawend', function(e) {
-            var format = new WKT();
-            _wkt = format.writeGeometry(e.feature.getGeometry());
-            _feature = e.feature;
-            document.getElementById('addedProp').innerHTML = '';
-            _pid = 0;
-            _new = true;
-            $('#deleteDraw').addClass('hide');
-            showPropertie();
-        })
+        if (type == 1) {
+            draw = new Draw({
+                source: source,
+                type: value,
+                style: new Style({
+                    fill: new Fill({
+                        color: 'rgba(255, 255, 255, 0.2)'
+                    }),
+                    stroke: new Stroke({
+                        color: 'rgba(0, 0, 0, 0.5)',
+                        lineDash: [10, 10],
+                        width: 2
+                    })
+                }),
+                freehand : false
+            });
+            createMeasureTooltip();
+            draw.on('drawstart',
+                (evt) => {
+                    // set sketch
+                    sketch = evt.feature;
+                    var tooltipCoord = evt.coordinate;
+                    listener = sketch.getGeometry().on('change', function(evt) {
+                        var geom = evt.target;
+                        var output;
+                        if (geom instanceof Polygon) {
+                            output = formatArea(geom);
+                            tooltipCoord = geom.getInteriorPoint().getCoordinates();
+                        } else if (geom instanceof LineString) {
+                            output = formatLength(geom);
+                            tooltipCoord = geom.getLastCoordinate();
+                        }
+                        measureTooltipElement.innerHTML = output;
+                        measureTooltip.setPosition(tooltipCoord);
+                    });
+                }, this);
+        } else {
+            draw = new Draw({
+                source: source,
+                type: value,
+                freehand: false
+            });
+        }
+        draw.on('drawend',
+            (e) => {
+                var format = new WKT();
+                _wkt = format.writeGeometry(e.feature.getGeometry());
+                _feature = e.feature;
+                document.getElementById('addedProp').innerHTML = '';
+                _pid = 0;
+                _new = true;
+                $('#deleteDraw').addClass('hide');
+                showPropertie();
+            });
         map.addInteraction(draw);
         map.addInteraction(modify);
     }
@@ -324,10 +422,6 @@ function resetStyle() {
         })
         _perfc = false;
     }
-}
-
-function cancelDraw() {
-    hidePropertie();
 }
 
 function saveDraw() {
@@ -391,6 +485,17 @@ function saveDraw() {
             $('#draw' + _Gid).html(name + '<i id="Setting' + _Gid + '" class="fa fa-cog fa-fw icon" style="display: block; margin-left: auto;"></i>');
             jsonObjects[id] = jsonObject;
         }
+
+        if (type == 1) {
+            measureTooltipElement.className = 'tooltipp tooltip-static';
+            measureTooltip.setOffset([0, -30]);
+            // unset sketch
+            sketch = null;
+            // unset tooltip so that a new one can be created
+            measureTooltipElement = null;
+            createMeasureTooltip();
+            unByKey(listener);
+        }
         map.removeInteraction(draw);
         addInteraction();
     }
@@ -442,7 +547,41 @@ document.addEventListener('click', function(e) {
 $('#myModal').on('hidden.bs.modal', function(e) {
     if (!_save && _new) {
         source.removeFeature(_feature);
-        //cancelDraw();
+        map.removeOverlay(measureTooltip);
     }
     _save = false;
 });
+
+
+
+
+var sketch;
+
+
+var measureTooltipElement;
+
+var measureTooltip;
+
+var formatLength = function(line) {
+    var length = getLength(line);
+    return (Math.round(length / 100 * 100) ) +' ' + 'km';
+};
+
+var formatArea = function(polygon) {
+    var area = getArea(polygon);
+    return  ( (Math.round( (area / 100 * 100) ) /2 )  ) + ' ' + 'km<sup>2</sup>';
+};
+
+function createMeasureTooltip() {
+    if (measureTooltipElement) {
+        measureTooltipElement.parentNode.removeChild(measureTooltipElement);
+    }
+    measureTooltipElement = document.createElement('div');
+    measureTooltipElement.className = 'tooltipp tooltip-measure';
+    measureTooltip = new Overlay({
+        element: measureTooltipElement,
+        offset: [10, -30],
+        positioning: 'top-center'
+    });
+    map.addOverlay(measureTooltip);
+}
