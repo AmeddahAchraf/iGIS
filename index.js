@@ -45,18 +45,19 @@ import {
 
 
 
-
-
-
 import $ from 'jquery';
 import saveAs from 'file-saver';
 
-require('bootstrap/dist/css/bootstrap.css');
 require('bootstrap/dist/js/bootstrap.js');
+require('bootstrap-treeview-1.2.0/dist/bootstrap-treeview.min.js');
+require('bootstrap/dist/css/bootstrap.css');
 require('font-awesome/css/font-awesome.css');
 
-window.onload = firstLoad;
-var extent = [0, 0, 1024, 968];
+var _currLayer = 0;
+var _Layers = Array();
+var selected = 0;
+
+var extent = [0, 0, 2953, 2079];
 var projection = new Projection({
     units: 'pixels',
     extent: extent
@@ -89,6 +90,10 @@ var typeSelect = 'LineString';
 var type = 0; // 0 Normale // 1 Measure
 var listener; // Lisen for measurement
 
+//Mesurement Variables
+var sketch;
+var measureTooltipElement;
+var measureTooltip;
 
 //Hex To Rgb transformation
 const hexToRgb = hex =>
@@ -110,6 +115,47 @@ document.getElementById('cancelDraw').addEventListener('click', hidePropertie, f
 document.getElementById('saveDraw').addEventListener('click', saveDraw, false);
 document.getElementById('lineM').addEventListener('click', measureLine, false);
 document.getElementById('polyM').addEventListener('click', measurePoly, false);
+
+window.onload = firstLoad;
+
+function reloadTree() {
+    $('#tree').treeview({
+        data: _Layers,
+        onhoverColor: '#B3FFFF',
+        showBorder: true,
+        highlightSelected: true,
+        selectedBackColor: "darkorange",
+        onNodeSelected: function(event, data) {
+            var nodeId = $('#tree').treeview('getSelected', nodeId)[0].nodeId;
+            selected = nodeId;
+            _currLayer = geLayerId($('#tree').treeview('getSelected', nodeId)[0].text);
+        }
+    });
+    $('#tree').treeview('selectNode', [selected, {
+        silent: true
+    }]);
+}
+
+function geLayerId(name) {
+    var id = -1;
+    _Layers.map((Parent, index) => {
+        if (Parent.text == name) {
+            id = index;
+        }
+    })
+    return id;
+}
+
+function getChildern(nodeId) {
+    var childs = 0;
+    _Layers.map((Parent, index) => {
+        if (Parent.id < nodeId) {
+            childs += Parent.nodes.length
+            //console.log(index, Parent.nodes.length);
+        }
+    });
+    return childs;
+}
 
 function measureLine() {
     typeSelect = 'LineString';
@@ -147,7 +193,11 @@ function exportPr() {
     var NameFile = prompt("Save as :");
     if (NameFile != null) {
         reloadModifiedDraw();
-        var text = JSON.stringify(jsonObjects); //transform it to string
+        var gSon = Array();
+        gSon.push(_Layers);
+        gSon.push(jsonObjects);
+
+        var text = JSON.stringify(gSon); //transform it to string
         var a = document.createElement('a');
         var blob = new Blob([text], {
             type: 'log/plain'
@@ -199,7 +249,10 @@ function openFile(event) {
     reader.onload = function() {
         var json = JSON.parse(reader.result);
         if (json != 0) {
-            json.forEach((elem) => {
+            json[0].forEach((elem) => {
+                _Layers.push(elem);
+            });
+            json[1].forEach((elem, i) => {
                 var wktObject = new WKT();
                 var feature = wktObject.readFeature(elem.wkt);
                 var style = new Style({
@@ -216,18 +269,30 @@ function openFile(event) {
                 source.addFeature(feature);
                 elem.id = _nbElem;
                 jsonObjects.push(elem);
-                document.getElementById('lay').insertAdjacentHTML(
-                    'beforeend',
-                    '<span class="input-group-text" id="draw' + _nbElem + '">' + elem.name + '<i id="Setting' + _nbElem + '" class="fa fa-cog fa-fw icon" style="display: block; margin-left: auto;"></i></span> ');
                 _nbElem++;
             });
+            reloadDataTree();
         }
     }
     reader.readAsText(input.files[0]);
 };
 
+function reloadDataTree() {
+    var i = 0;
+    _Layers.map(elem => {
+        elem.nodes.map(node => {
+            node.id = i;
+            var regex = />([\w]*)</;
+            var match = regex.exec(node.text);
+            node.text = '<span id="draw' + i + '">' + match[1] + '<i id="Setting' + i + '" class="fa fa-cog fa-fw icon" ></i></span>',
+                i++;
+        });
+    });
+    reloadTree();
+}
+
 function firstLoad() {
-    _fileName = "germany-map.jpg";
+    _fileName = "Alger.jpg";
     $('[data-toggle="tooltip"]').tooltip();
     loadMap();
 }
@@ -255,7 +320,7 @@ function loadMap() {
         target: 'map',
         view: new View({
             projection: projection,
-            zoom: 1.5,
+            zoom: 1.8,
             center: getCenter(extent),
             maxZoom: 6,
             minZoom: 1
@@ -279,7 +344,7 @@ function drawPoly() {
 }
 
 function drawCircle() {
-    typeSelect = 'Circle';
+    typeSelect = 'Point';
     map.removeInteraction(draw);
     addInteraction();
 }
@@ -308,6 +373,15 @@ function deleteDraw() {
 
     //Delete span from html
     $('#draw' + _Gid).remove();
+    _Layers.map(elem => {
+        elem.nodes.map((node, i) => {
+            if (node.id == _Gid) {
+                elem.nodes.splice(i, 1);
+            }
+        });
+
+    });
+    reloadTree();
 }
 
 function addInteraction() {
@@ -315,60 +389,68 @@ function addInteraction() {
     var value = typeSelect;
 
     if (value !== 'None') {
-        if (type == 1) {
+        if (value == 'Point') {
             draw = new Draw({
                 source: source,
-                type: value,
-                style: new Style({
-                    fill: new Fill({
-                        color: 'rgba(255, 255, 255, 0.2)'
-                    }),
-                    stroke: new Stroke({
-                        color: 'rgba(0, 0, 0, 0.5)',
-                        lineDash: [10, 10],
-                        width: 2
-                    })
-                }),
-                freehand : false
+                type: value
             });
-            createMeasureTooltip();
-            draw.on('drawstart',
-                (evt) => {
-                    // set sketch
-                    sketch = evt.feature;
-                    var tooltipCoord = evt.coordinate;
-                    listener = sketch.getGeometry().on('change', function(evt) {
-                        var geom = evt.target;
-                        var output;
-                        if (geom instanceof Polygon) {
-                            output = formatArea(geom);
-                            tooltipCoord = geom.getInteriorPoint().getCoordinates();
-                        } else if (geom instanceof LineString) {
-                            output = formatLength(geom);
-                            tooltipCoord = geom.getLastCoordinate();
-                        }
-                        measureTooltipElement.innerHTML = output;
-                        measureTooltip.setPosition(tooltipCoord);
-                    });
-                }, this);
         } else {
-            draw = new Draw({
-                source: source,
-                type: value,
-                freehand: false
-            });
+            if (type == 1) {
+                draw = new Draw({
+                    source: source,
+                    type: value,
+                    style: new Style({
+                        fill: new Fill({
+                            color: 'rgba(255, 255, 255, 0.2)'
+                        }),
+                        stroke: new Stroke({
+                            color: 'rgba(0, 0, 0, 0.5)',
+                            lineDash: [10, 10],
+                            width: 2
+                        })
+                    }),
+                    freehand: false
+                });
+                createMeasureTooltip();
+                draw.on('drawstart',
+                    (evt) => {
+                        // set sketch
+                        sketch = evt.feature;
+                        var tooltipCoord = evt.coordinate;
+                        listener = sketch.getGeometry().on('change', function(evt) {
+                            var geom = evt.target;
+                            var output;
+                            if (geom instanceof Polygon) {
+                                output = formatArea(geom);
+                                tooltipCoord = geom.getInteriorPoint().getCoordinates();
+                            } else if (geom instanceof LineString) {
+                                output = formatLength(geom);
+                                tooltipCoord = geom.getLastCoordinate();
+                            }
+                            measureTooltipElement.innerHTML = output;
+                            measureTooltip.setPosition(tooltipCoord);
+                        });
+                    }, this);
+            } else {
+                draw = new Draw({
+                    source: source,
+                    type: value,
+                    freehand: false
+                });
+            }
+            draw.on('drawend',
+                (e) => {
+                    var format = new WKT();
+                    _wkt = format.writeGeometry(e.feature.getGeometry());
+                    _feature = e.feature;
+                    document.getElementById('addedProp').innerHTML = '';
+                    _pid = 0;
+                    _new = true;
+                    $('#deleteDraw').addClass('hide');
+                    showPropertie();
+                });
         }
-        draw.on('drawend',
-            (e) => {
-                var format = new WKT();
-                _wkt = format.writeGeometry(e.feature.getGeometry());
-                _feature = e.feature;
-                document.getElementById('addedProp').innerHTML = '';
-                _pid = 0;
-                _new = true;
-                $('#deleteDraw').addClass('hide');
-                showPropertie();
-            });
+
         map.addInteraction(draw);
         map.addInteraction(modify);
     }
@@ -425,6 +507,15 @@ function resetStyle() {
 }
 
 function saveDraw() {
+    if (_Layers.length == 0) {
+        var _Layer = {
+            id: _nbElem,
+            text: 'Layer 0',
+            nodes: []
+        }
+        _Layers.push(_Layer);
+        reloadTree();
+    }
     var name = document.getElementById('name').value;
     if (name != '') {
         _save = true;
@@ -470,10 +561,14 @@ function saveDraw() {
             _feature.setId(_nbElem);
             source.addFeature(_feature);
             jsonObjects.push(jsonObject);
-            //Add layer to the left layer Div
-            document.getElementById('lay').insertAdjacentHTML(
-                'beforeend',
-                '<span class="input-group-text" id="draw' + _nbElem + '">' + name + '<i id="Setting' + _nbElem + '" class="fa fa-cog fa-fw icon" style="display: block; margin-left: auto;"></i></span> ');
+
+
+            var localNode = {
+                id: _nbElem,
+                text: '<span id="draw' + _nbElem + '">' + name + '<i id="Setting' + _nbElem + '" class="fa fa-cog fa-fw icon" ></i></span>',
+                selectable: false
+            }
+            _Layers[_currLayer].nodes.push(localNode);
             _nbElem++; //Increment nb of elements
         } else {
             _feature = source.getFeatureById(_Gid);
@@ -482,9 +577,15 @@ function saveDraw() {
 
             jsonObject.wkt = jsonObjects[id].wkt;
             jsonObject.id = jsonObjects[id].id;
-            $('#draw' + _Gid).html(name + '<i id="Setting' + _Gid + '" class="fa fa-cog fa-fw icon" style="display: block; margin-left: auto;"></i>');
+            _Layers[_currLayer].nodes.map((e, i) => {
+                if (e.id == _Gid) {
+                    e.text = '<span id="draw' + _Gid + '">' + name + '<i id="Setting' + _Gid + '" class="fa fa-cog fa-fw icon" ></i></span>';
+                };
+            });
+            $('#draw' + _Gid).html(name + '<i id="Setting' + _Gid + '" class="fa fa-cog fa-fw icon"></i>');
             jsonObjects[id] = jsonObject;
         }
+        reloadTree();
 
         if (type == 1) {
             measureTooltipElement.className = 'tooltipp tooltip-static';
@@ -499,6 +600,8 @@ function saveDraw() {
         map.removeInteraction(draw);
         addInteraction();
     }
+
+
 
 }
 
@@ -533,6 +636,7 @@ document.addEventListener('mouseover', function(e) {
     } else {
         resetStyle();
     }
+
 });
 
 document.addEventListener('click', function(e) {
@@ -552,24 +656,42 @@ $('#myModal').on('hidden.bs.modal', function(e) {
     _save = false;
 });
 
-
-
-
-var sketch;
-
-
-var measureTooltipElement;
-
-var measureTooltip;
+$('#saveLayer').click(function() {
+    var name = $('#layerName').val();
+    var _Layer = {
+        id: _nbElem,
+        text: name,
+        nodes: []
+    }
+    _Layers.push(_Layer);
+    reloadTree();
+    $('#prompt').modal('hide');
+});
 
 var formatLength = function(line) {
     var length = getLength(line);
-    return (Math.round(length / 100 * 100) ) +' ' + 'km';
+    var output;
+    if (length > 100) {
+        output = (Math.round((length / 100 * 100) / 100) * 3) +
+            ' ' + 'km';
+    } else {
+        output = (Math.round(length * 1000) / 100) +
+            ' ' + 'm';
+    }
+    return output;
 };
 
 var formatArea = function(polygon) {
     var area = getArea(polygon);
-    return  ( (Math.round( (area / 100 * 100) ) /2 )  ) + ' ' + 'km<sup>2</sup>';
+    var output;
+    if (area > 10000) {
+        output = (Math.round(((area / 100000 * 100) / 100) * 3)) +
+            ' ' + 'km<sup>2</sup>';
+    } else {
+        output = (Math.round((area * 1000) / 100)) +
+            ' ' + 'm<sup>2</sup>';
+    }
+    return output;
 };
 
 function createMeasureTooltip() {
@@ -577,7 +699,7 @@ function createMeasureTooltip() {
         measureTooltipElement.parentNode.removeChild(measureTooltipElement);
     }
     measureTooltipElement = document.createElement('div');
-    measureTooltipElement.className = 'tooltipp tooltip-measure';
+    measureTooltipElement.className = 'tooltipp tooltip - measure';
     measureTooltip = new Overlay({
         element: measureTooltipElement,
         offset: [10, -30],

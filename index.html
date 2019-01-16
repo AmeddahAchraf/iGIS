@@ -7,6 +7,36 @@
 </head>
 
 <body>
+    <!-- BEGIN Prompt Div:  -->
+    <!-- Modal -->
+    <div class="modal fade" id="prompt" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3 class="modal-title" id="exampleModalLongTitle">Layer Name </h3>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+              <div class="input-group input-group-lg">
+                <div class="input-group-prepend">
+                  <span class="input-group-text" >Name</span>
+                </div>
+                <input type="text" class="form-control" id="layerName" placeholder="Layer 0" >
+              </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-warning" id="saveLayer">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- END Prompt Div:  -->
+
+
     <div class="header">
         <nav class="navbar navbar-expand-md navbar-light bg-light ">
             <a class="navbar-brand" href="#"><i class="fa fa-compass fa-lg"></i> iGis</a>
@@ -15,6 +45,9 @@
             </button>
             <div class="collapse navbar-collapse justify-content-md-center" id="navbarNav">
                 <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a id="addLayer" data-toggle="modal" data-target="#prompt" class="nav-link" href="#"><i class="fa fa-download"></i> Add Layer</a>
+                    </li>
                     <li class="nav-item">
                         <a id="openMap" class="nav-link" href="#"><i class="fa fa-globe"></i> Open Map</a>
                     </li>
@@ -36,16 +69,18 @@
 
             <a id="line" class="list-group-item" href="#"><i class="fa fa-pencil fa-fw" data-toggle="tooltip" data-placement="left" title="Draw Line" ></i></a>
             <a id="poly" class="list-group-item" href="#"><i class="fa fa-square-o fa-fw icon" data-toggle="tooltip" data-placement="left" title="Draw Polygon"></i></a>
+            <a id="circle" class="list-group-item" href="#"><i class="fa fa-circle-thin fa-fw"data-toggle="tooltip" data-placement="left" title="Draw Point"></i></a>
             <div class="sep"></div>
             <a id="lineM" class="list-group-item" href="#"><i class="fa fa-arrows-h fa-fw icon" data-toggle="tooltip" data-placement="left" title="Measure Line" ></i></a>
             <a id="polyM" class="list-group-item" href="#"><i class="fa fa-th-large fa-fw icon" data-toggle="tooltip" data-placement="left" title="Measure Surface"></i></a>
-            <a id="circle" class="list-group-item" href="#"><i class="fa fa-circle-thin fa-fw"data-toggle="tooltip" data-placement="left" title="Draw Circle"></i></a>
+
 
         </div>
     </div>
     <div id="layers">
-        <div id="lay" class="container text-center">
-        </div>
+        <!--<div id="lay" class="container text-center">
+        </div>  -->
+        <div id="tree"></div>
     </div>
     <div id="map"></div>
     <input class="hide" type="file" id="file-input">
@@ -66,7 +101,7 @@
                   <div class="input-group-prepend">
                       <span class="input-group-text" id="inputGroup-sizing-default">Name</span>
                   </div>
-                  <input id="name" type="text" class="form-control" aria-label="Default" aria-describedby="inputGroup-sizing-default" placeholder="Algeria" required/>
+                  <input id="name" type="text" class="form-control" aria-label="Default" aria-describedby="inputGroup-sizing-default" placeholder="Item" value="Shape"/>
               </div>
               <div class="input-group mb-3">
                   <div class="input-group-prepend">
