@@ -42,6 +42,7 @@ import {
     LineString,
     Polygon
 } from 'ol/geom.js';
+import GeometryCollection from 'ol/geom/GeometryCollection';
 
 
 
@@ -486,7 +487,6 @@ function showDataInPropertie() {
 function resetStyle() {
     if (_perfc && jsonObjects.length >= 1) {
         var styleAr = Array();
-        //console.log(jsonObjects.length,source.getFeatures().length);
         jsonObjects.forEach((elem) => {
             var style = new Style({
                 fill: new Fill({
@@ -516,6 +516,7 @@ function saveDraw() {
         _Layers.push(_Layer);
         reloadTree();
     }
+
     var name = document.getElementById('name').value;
     if (name != '') {
         _save = true;
@@ -559,6 +560,7 @@ function saveDraw() {
         if (_new) {
             _feature.setStyle(style);
             _feature.setId(_nbElem);
+
             source.addFeature(_feature);
             jsonObjects.push(jsonObject);
 
@@ -604,7 +606,31 @@ function saveDraw() {
 
 
 }
+$('#intersect').click(function() {
+    var shape1 = prompt('name of shape 1');
+    jsonObjects.map(feature=>{
+       if(feature.name==shape1)
+       {
+           shape1=feature.id
+       }
+    });
+    var shape2 = prompt('name of shape 2');
+    jsonObjects.map(feature=>{
+       if(feature.name==shape2)
+       {
+           shape2=feature.id
+       }
+    });
 
+
+    var x = source.getFeatureById(shape1).getGeometry().getExtent();
+
+    var y = source.getFeatureById(shape2).getGeometry();
+
+    alert(y.intersectsExtent(x));
+
+
+});
 document.getElementById('addProp').addEventListener('click', function() {
     document.getElementById('addedProp').insertAdjacentHTML(
         'beforeend',
