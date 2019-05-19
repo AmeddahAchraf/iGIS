@@ -8,7 +8,7 @@ Web application that allows you to create Geo information systems, import/export
 
 ## Getting Started
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See https://igis-app.herokuapp.com for a live demo.
+These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See https://igisapp.herokuapp.com for a live demo.
 
 ```
 git clone https://github.com/AmeddahAchraf/iGIS
